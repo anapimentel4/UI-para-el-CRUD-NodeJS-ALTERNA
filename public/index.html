@@ -1,0 +1,189 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <h1>Users Dashboard</h1>
+    <div style="margin-bottom: 2rem;">
+        <label for="">User</label><br>
+        <input type="text" autocomplete="off" id="username"><br>
+        <label for="">Phone</label><br>
+        <input type="text" autocomplete="off" id="userphone"><br>
+
+    </div>
+    <div style="margin-bottom: 2rem;">
+        <button id="btnSave" onclick="addNewUser()">Registrar</button>
+        <button id="btnSaveChanges" onclick="saveEditing()" style="display: none;">Guardar cambios</button>
+    </div>
+
+    <table border="1" style="border-collapse: collapse; width: 300px;">
+        <thead>
+            <tr style="text-align: left">
+                <th>#</th>
+                <th>Nombre</th>
+                <th>Telefono</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="tbody">
+
+        </tbody>
+    </table>
+
+    <script>
+        const username = document.getElementById('username');
+        const userphone = document.getElementById('userphone');
+        const btnSave = document.getElementById('btnSave');
+        const btnSaveChanges = document.getElementById('btnSaveChanges');
+
+        let editing = false;
+        let editingId = null;
+
+        const myHeaders = new Headers();
+        myHeaders.append("Content-Type", "application/json");
+
+        async function editar(id, name, phone) {
+            editing = true;
+            editingId = id;
+            username.value = name;
+            userphone.value = phone;
+            btnSave.style.display = 'none';
+            btnSaveChanges.style.display = 'inline-block';
+        }
+
+        async function saveEditing() {
+            const userData = {
+                name: username.value,
+                phone: userphone.value
+            };
+
+            const jsonBody = JSON.stringify(userData);
+
+            const requestOptions = {
+                method: 'PUT',
+                body: jsonBody,
+                headers: myHeaders
+            };
+
+            try {
+                const response = await fetch(`${urlApi}/users/${editingId}`, requestOptions);
+                const jsonData = await response.json();
+                const message = `El usuario ${jsonData} fue registrado correctamente`;
+
+                editing = false;
+                editingId = null;
+                username.value = '';
+                userphone.value = '';
+
+                btnSave.style.display = 'inline-block';
+                btnSaveChanges.style.display = 'none';
+
+                alert(message);
+
+                getUsers();
+            } catch (ex) {
+                alert('Ocurrió un error inesperado');
+            }
+        }
+
+        async function addNewUser() {
+            const userData = {
+                name: username.value,
+                phone: userphone.value
+            };
+
+            const jsonBody = JSON.stringify(userData);
+
+            const requestOptions = {
+                method: 'POST',
+                body: jsonBody,
+                headers: myHeaders
+            };
+
+            try {
+                const response = await fetch(`${urlApi}/users`, requestOptions);
+                const jsonData = await response.json();
+                const message = `El usuario ${jsonData.name} fue registrado correctamente`;
+
+                username.value = '';
+                userphone.value = '';
+
+                alert(message);
+
+                getUsers();
+            } catch (ex) {
+                alert('Ocurrió un error inesperado');
+            }
+        }
+
+        async function deleteUser(id) {
+            try {
+                const requestOptions = {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+
+                const response = await fetch(`${urlApi}/users/${id}`, requestOptions);
+
+                if (response.ok) {
+                    getUsers();
+                    const idDeleted = `Usuario ${id} eliminado`;
+                    alert(idDeleted);
+                }
+            } catch (error) {
+                console.log(error);
+            }
+        }
+
+        const urlApi = 'http://localhost:3000';
+        const tbody = document.getElementById('tbody');
+
+        async function getUsers() {
+            try {
+                const response = await fetch(`${urlApi}/users`);
+                const jsonData = await response.json();
+
+                let index = 1;
+                tbody.innerHTML = '';
+
+                jsonData.forEach(element => {
+                    const rowData = { index, ...element };
+                    addRow(rowData);
+                    index += 1;
+                });
+            } catch (ex) {
+                console.log(ex);
+            }
+        }
+
+        function addRow(rowData) {
+            const tr = document.createElement('tr');
+
+            tr.innerHTML = `
+                <td>${rowData.index}</td>
+                <td>${rowData.name}</td>
+                <td>${rowData.phone}</td>
+                <td>
+                    <button onclick="deleteUser(${rowData.id})">x</button>
+                    <button onclick="editar(${rowData.id}, '${rowData.name}', '${rowData.phone}')">E</button>
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+        }
+
+        getUsers();
+    </script>
+</body>
+
+</html>
